@@ -1,14 +1,9 @@
-import logging
-
 import scapy.all
-import scapy.layers.inet as layers
 
 import gui.resources as r
 from gui.adapter import *
 from gui.components import *
 from utils.PacketManager import *
-
-logger = logging.getLogger(__name__)
 
 
 class App(tk.Frame):
