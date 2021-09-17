@@ -91,18 +91,16 @@ class App(tk.Frame):
     def send_packet(self):
         print(f'Sending packet {self.proto}')
         iface = self.interface.get()
-        head = layers.Ether() / layers.IP(**self.ip)
+        ip = layers.IP(**self.ip)
 
         if self.proto == 'TCP':
-            layer = head / layers.TCP(**self.tcp)
+            self.packet_manager.send(ip, layers.TCP(**self.tcp), iface)
         elif self.proto == 'UDP':
-            layer = head / layers.UDP(**self.udp)
+            self.packet_manager.send(ip, layers.UDP(**self.udp), iface)
         elif self.proto == 'ICMP':
-            layer = head / layers.ICMP(**self.icmp)
+            self.packet_manager.send(ip, layers.ICMP(**self.icmp), iface)
         else:
-            layer = head
-
-        scapy.all.sendp(layer, iface=iface)
+            self.packet_manager.send(ip, None, iface)
 
 
 class IPFrame(tk.Frame, PacketAdapter):
