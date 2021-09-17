@@ -28,6 +28,7 @@ class VerticalFlags(tk.Frame):
         super().__init__(root)
         self.vars = []
         self.checks = []
+        self.callbacks = []
 
         self.result = tk.IntVar(value=0)
         self.result.trace('w', lambda *args: result_handler(self.result.get()))
@@ -37,18 +38,33 @@ class VerticalFlags(tk.Frame):
 
         for (i, el) in enumerate(flags):
             var = tk.BooleanVar()
-            var.trace('w', lambda *args: self._compute_result(1, list(filter(lambda idx: self.vars[idx]._name in args[0], range(len(self.vars))))))
             self.vars.append(var)
-            check = ttk.Checkbutton(self, variable=var, text=el, width=6)
+            callback = var.trace_add(['write'], self._resolve_checkbox)
+            self.callbacks.append(callback)
+            check = tk.Checkbutton(self, variable=var, text=el, width=6)
             self.checks.append(check)
             check.pack(side=tk.TOP)
 
-    def _compute_result(self, value, v):
-        old_val = self.result.get()
-        self.result.set(old_val ^ (value << v[0]))
+    def _resolve_checkbox(self, *args):
+        i = list(filter(lambda idx: self.vars[idx]._name in args[0], range(len(self.vars))))[0]
+        self._compute_result(self.vars[i].get(), i)
 
-    def set(self, value: int):
-        return
+    def _compute_result(self, bit, v):
+        old_val = self.result.get()
+        self.result.set(old_val ^ (1 << v))
+
+    def set(self, value):
+        i = 0
+        res = 0
+        while value:
+            self.vars[i].trace_remove(['write'], self.callbacks[i])
+            self.vars[i].set(int(value) & 0b1)
+            self.callbacks[i] = self.vars[i].trace_add(['write'], self._resolve_checkbox)
+            res = res | ((int(value) & 0b1) << i)
+            value = value >> 1
+            i = i + 1
+
+        self.result.set(res)
 
     def disable(self):
         for el in self.checks:
@@ -123,6 +139,9 @@ class LabeledCombobox(tk.Frame):
 
     def get(self):
         return self.field.get()
+
+    def set(self, value):
+        return
 
 
 

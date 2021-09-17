@@ -1,8 +1,4 @@
-import tkinter as tk
-from gui.components import *
 from gui.views import *
-import scapy.all
-import scapy.layers.inet as layers
 
 TITLE = '0.1a'
 
