@@ -91,7 +91,7 @@ class App(tk.Frame):
     def send_packet(self):
         print(f'Sending packet {self.proto}')
         iface = self.interface.get()
-        head = layers.Ether() /
+        head = layers.Ether() / layers.IP(**self.ip)
 
         if self.proto == 'TCP':
             layer = head / layers.TCP(**self.tcp)
