@@ -5,16 +5,22 @@ class PacketAdapter:
         self.data = data
         self.layer = layer
 
+    """
+    On gui data changed listener.
+    :field field name in internet layer
+    :value field value in internet layer
+    """
     def on_data_changed(self, field, value):
         if value is not None or '':
             self.data[field] = value
         else:
             self.data.pop(field, None)
-        # Ignore chksum to allow scapy compute it automatically
-        self.data.pop('chksum', None)
 
         self.draw_layer_data()
 
+    """
+    Draw all data to gui.
+    """
     def draw_layer_data(self):
         layer = self.update_packet()
         layer.show()
@@ -24,8 +30,6 @@ class PacketAdapter:
                 gui_el = getattr(self, k)
                 if v is not None:
                     gui_el.set(v)
-                    # fixme Packet breaks if set all parameters manually
-                    # self.data[k] = v
 
     """
     Scapy need spacial calls to update packet chksum, 

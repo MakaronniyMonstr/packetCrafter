@@ -1,29 +1,22 @@
-from enum import Enum
-import scapy.layers.inet as layers
-import scapy.packet as packet
 import scapy.all
+import scapy.layers.inet as layers
 
 
 class PacketManager:
-    class PacketType(Enum):
-        IP = 0
-        TCP = 6
-        UDP = 17
-        ICMP = 1
-
     def __init__(self):
-        pass
+        self.packets = []
+
+    def send_all(self, iface):
+        for packet in self.packets:
+            scapy.all.sendp(packet, iface=iface)
 
     @staticmethod
-    def send(ip_data: {}, iface, additional_layer_data=None, additional_layer=None ):
-        ip = PacketManager.build(ip_data, layers.IP)
-        pckt = layers.Ether() / ip
-
-        if additional_layer_data:
-            pckt = pckt / PacketManager.build(additional_layer_data, additional_layer)
+    def send(ip, additional_layer, iface):
+        pckt = PacketManager.build(ip, additional_layer)
         scapy.all.sendp(pckt, iface=iface)
 
-
-    @staticmethod
-    def build(layer_data: {}, layer):
-        return layer.__init__(**layer_data)
+    def build(self, ip, additional_layer):
+        pckt = layers.Ether() / ip
+        if additional_layer:
+            pckt = pckt / additional_layer
+        return pckt

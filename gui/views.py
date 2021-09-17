@@ -6,6 +6,7 @@ import scapy.layers.inet as layers
 import gui.resources as r
 from gui.adapter import *
 from gui.components import *
+from utils.PacketManager import *
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class App(tk.Frame):
     def __init__(self, root):
         super().__init__(root)
 
+        self.packet_manager = PacketManager()
         self.ip = {}
         self.tcp = {}
         self.udp = {}
@@ -66,6 +68,7 @@ class App(tk.Frame):
         if self.proto == proto:
             return
 
+        # fixme Looks so awful. Switch should be removed
         if proto == 'IP':
             self.notebook.tab(1, state=FrameState.DISABLED.value)
             self.notebook.tab(2, state=FrameState.DISABLED.value)
@@ -88,7 +91,7 @@ class App(tk.Frame):
     def send_packet(self):
         print(f'Sending packet {self.proto}')
         iface = self.interface.get()
-        head = layers.Ether() / layers.IP(**self.ip)
+        head = layers.Ether() /
 
         if self.proto == 'TCP':
             layer = head / layers.TCP(**self.tcp)
