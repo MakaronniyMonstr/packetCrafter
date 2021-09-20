@@ -31,6 +31,13 @@ class PacketAdapter:
                     gui_el.set(v)
 
     """
+    Clear all input to set data to default values.
+    """
+    def clear_input(self):
+        self.data = {}
+        self.draw_layer_data()
+
+    """
     Scapy need spacial calls to update packet chksum, 
     this method especially computes it and return packet with all data.
     """

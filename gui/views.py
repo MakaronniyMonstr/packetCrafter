@@ -56,6 +56,29 @@ class App(tk.Frame):
                                      command=self.send_packet)
         self.send_button.pack(side=tk.TOP)
 
+        self.packet_list = tk.Listbox(menu_frame,
+                                      selectmode=tk.BROWSE)
+        self.packet_list.pack(side=tk.TOP,
+                              fill=tk.BOTH)
+
+        self.add_button = tk.Button(menu_frame,
+                                    text=r.ADD,
+                                    command=lambda: (self.packet_list.insert(tk.END, '1')))
+        self.add_button.pack(side=tk.LEFT,
+                             anchor=tk.NW)
+
+        self.clear_button = tk.Button(menu_frame,
+                                      text=r.CLEAR,
+                                      command=lambda: self.packet_list.delete(0, tk.END))
+        self.clear_button.pack(side=tk.LEFT,
+                               anchor=tk.NE)
+
+        self.send_all_button = tk.Button(menu_frame,
+                                         text=r.SEND_ALL,
+                                         command=lambda: self.packet_manager.send_all(self.interface.get()))
+        self.send_all_button.pack(side=tk.LEFT,
+                                  anchor=tk.N)
+
         # Start with IP protocol
         self.on_protocol_type_changed('IP')
 
@@ -85,17 +108,17 @@ class App(tk.Frame):
 
     def send_packet(self):
         print(f'Sending packet {self.proto}')
-        iface = self.interface.get()
+        interface = self.interface.get()
         ip = layers.IP(**self.ip)
 
         if self.proto == 'TCP':
-            self.packet_manager.send(ip, layers.TCP(**self.tcp), iface)
+            self.packet_manager.send(ip, layers.TCP(**self.tcp), interface)
         elif self.proto == 'UDP':
-            self.packet_manager.send(ip, layers.UDP(**self.udp), iface)
+            self.packet_manager.send(ip, layers.UDP(**self.udp), interface)
         elif self.proto == 'ICMP':
-            self.packet_manager.send(ip, layers.ICMP(**self.icmp), iface)
+            self.packet_manager.send(ip, layers.ICMP(**self.icmp), interface)
         else:
-            self.packet_manager.send(ip, None, iface)
+            self.packet_manager.send(ip, None, interface)
 
 
 class IPFrame(tk.Frame, PacketAdapter):
