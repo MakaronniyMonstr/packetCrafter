@@ -110,6 +110,7 @@ class App(tk.Frame):
         packet = self._prepare_packet()
         scapy.all.sendp(packet, iface=interface)
 
+    # fixme move this to PacketManager
     def _prepare_packet(self):
         ip = layers.IP(**self.ip)
 
