@@ -33,7 +33,7 @@ class PacketAdapter:
     """
     Clear all input to set data to default values.
     """
-    def clear_input(self):
+    def reset_input(self):
         self.data = {}
         self.draw_layer_data()
 

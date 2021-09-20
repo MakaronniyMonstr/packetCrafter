@@ -28,6 +28,8 @@ PROTOCOL = 'Protocol'
 ADD = 'Add'
 CLEAR = 'Clear'
 SEND_ALL = 'Send all'
+ERROR = 'Error'
+RESET = 'Reset'
 
 MF = 'MF'
 DF = 'DF'

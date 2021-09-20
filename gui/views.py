@@ -58,26 +58,24 @@ class App(tk.Frame):
 
         self.packet_list = tk.Listbox(menu_frame,
                                       selectmode=tk.BROWSE)
-        self.packet_list.pack(side=tk.TOP,
-                              fill=tk.BOTH)
+        self.packet_list.pack(side=tk.TOP, fill=tk.BOTH)
 
         self.add_button = tk.Button(menu_frame,
                                     text=r.ADD,
-                                    command=lambda: (self.packet_list.insert(tk.END, '1')))
-        self.add_button.pack(side=tk.LEFT,
-                             anchor=tk.NW)
+                                    command=lambda: (self.packet_manager.packets.append(self._prepare_packet()),
+                                                     self.packet_list.insert(tk.END, next((k for (k, v) in IPFrame.PROTOCOLS.items() if k == self.proto), r.ERROR))))
+        self.add_button.pack(side=tk.LEFT, anchor=tk.NW)
 
         self.clear_button = tk.Button(menu_frame,
                                       text=r.CLEAR,
-                                      command=lambda: self.packet_list.delete(0, tk.END))
-        self.clear_button.pack(side=tk.LEFT,
-                               anchor=tk.NE)
+                                      command=lambda: (self.packet_manager.packets.clear(),
+                                                       self.packet_list.delete(0, tk.END)))
+        self.clear_button.pack(side=tk.LEFT, anchor=tk.NE)
 
         self.send_all_button = tk.Button(menu_frame,
                                          text=r.SEND_ALL,
                                          command=lambda: self.packet_manager.send_all(self.interface.get()))
-        self.send_all_button.pack(side=tk.LEFT,
-                                  anchor=tk.N)
+        self.send_all_button.pack(side=tk.LEFT, anchor=tk.N)
 
         # Start with IP protocol
         self.on_protocol_type_changed('IP')
@@ -109,16 +107,20 @@ class App(tk.Frame):
     def send_packet(self):
         print(f'Sending packet {self.proto}')
         interface = self.interface.get()
+        packet = self._prepare_packet()
+        scapy.all.sendp(packet, iface=interface)
+
+    def _prepare_packet(self):
         ip = layers.IP(**self.ip)
 
         if self.proto == 'TCP':
-            self.packet_manager.send(ip, layers.TCP(**self.tcp), interface)
+            return self.packet_manager.build(ip, layers.TCP(**self.tcp))
         elif self.proto == 'UDP':
-            self.packet_manager.send(ip, layers.UDP(**self.udp), interface)
+            return self.packet_manager.build(ip, layers.UDP(**self.udp))
         elif self.proto == 'ICMP':
-            self.packet_manager.send(ip, layers.ICMP(**self.icmp), interface)
+            return self.packet_manager.build(ip, layers.ICMP(**self.icmp))
         else:
-            self.packet_manager.send(ip, None, interface)
+            return self.packet_manager.build(ip, None)
 
 
 class IPFrame(tk.Frame, PacketAdapter):
@@ -216,6 +218,11 @@ class IPFrame(tk.Frame, PacketAdapter):
         self.proto.field.trace_add(['write'], lambda *args: protocol_changed_handler(self.proto.field.get()))
         self.proto.pack(side=tk.LEFT, anchor=tk.N)
 
+        self.reset_input_button = tk.Button(flags_frame,
+                                            text=r.RESET,
+                                            command=lambda: self.reset_input())
+        self.reset_input_button.pack(side=tk.LEFT, anchor=tk.N)
+
         self.draw_layer_data()
 
     def update_packet(self):
@@ -286,6 +293,11 @@ class TCPFrame(tk.Frame, PacketAdapter):
                                    lambda v: self.on_data_changed('flags', int(v)))
         self.flags.pack(side=tk.LEFT, anchor=tk.N)
 
+        self.reset_input_button = tk.Button(flags_frame,
+                                            text=r.RESET,
+                                            command=lambda: self.reset_input())
+        self.reset_input_button.pack(side=tk.LEFT, anchor=tk.N)
+
         self.draw_layer_data()
 
     def update_packet(self):
@@ -321,6 +333,11 @@ class UDPFrame(tk.Frame, PacketAdapter):
                                    r.CHK,
                                    lambda v: self.on_data_changed('chksum', int(v)))
         self.chksum.grid(column=0, row=3)
+
+        self.reset_input_button = tk.Button(entry_frame,
+                                            text=r.RESET,
+                                            command=lambda: self.reset_input())
+        self.reset_input_button.grid(column=1, row=0)
 
         self.draw_layer_data()
 
@@ -371,7 +388,12 @@ class ICMPFrame(tk.Frame, PacketAdapter):
                                     list(self.ICMP_TYPES.keys()),
                                     lambda v: self.on_data_changed('type', self.ICMP_TYPES[v]),
                                     box_width=20)
-        self.type.pack(side=tk.TOP, anchor=tk.N)
+        self.type.pack(side=tk.LEFT, anchor=tk.N)
+
+        self.reset_input_button = tk.Button(flag_frame,
+                                            text=r.RESET,
+                                            command=lambda: self.reset_input())
+        self.reset_input_button.pack(side=tk.LEFT, anchor=tk.N)
 
         self.draw_layer_data()
 
