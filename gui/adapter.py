@@ -1,4 +1,3 @@
-
 class PacketAdapter:
     def __init__(self, data, layer, ip_data=None):
         self.ip_data = ip_data

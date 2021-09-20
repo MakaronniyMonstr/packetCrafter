@@ -27,11 +27,10 @@ class VerticalFlags(tk.Frame):
     def __init__(self, root, text, flags, result_handler):
         super().__init__(root)
         self.vars = []
-        self.checks = []
-        self.callbacks = []
 
         self.result = tk.IntVar(value=0)
-        self.result.trace('w', lambda *args: result_handler(self.result.get()))
+        self.result_handler = result_handler
+        self.result_callback = self.result.trace_add(['write'], lambda *args: result_handler(self.result.get()))
 
         lbl = tk.Label(self, text=text)
         lbl.pack(side=tk.TOP)
@@ -39,10 +38,9 @@ class VerticalFlags(tk.Frame):
         for (i, el) in enumerate(flags):
             var = tk.BooleanVar()
             self.vars.append(var)
-            callback = var.trace_add(['write'], self._resolve_checkbox)
-            self.callbacks.append(callback)
+
+            var.trace_add(['write'], self._resolve_checkbox)
             check = tk.Checkbutton(self, variable=var, text=el, width=6)
-            self.checks.append(check)
             check.pack(side=tk.TOP)
 
     def _resolve_checkbox(self, *args):
@@ -56,23 +54,16 @@ class VerticalFlags(tk.Frame):
     def set(self, value):
         i = 0
         res = 0
+
+        self.result.trace_remove(['write'], self.result_callback)
         while value:
-            self.vars[i].trace_remove(['write'], self.callbacks[i])
             self.vars[i].set(int(value) & 0b1)
-            self.callbacks[i] = self.vars[i].trace_add(['write'], self._resolve_checkbox)
             res = res | ((int(value) & 0b1) << i)
             value = value >> 1
             i = i + 1
 
         self.result.set(res)
-
-    def disable(self):
-        for el in self.checks:
-            el['state'] = FrameState.DISABLED.value
-
-    def enable(self):
-        for el in self.checks:
-            el['state'] = FrameState.NORMAL.value
+        self.result.trace_add(['write'], lambda *args: self.result_handler(self.result.get()))
 
 
 class LabeledEntry(tk.Frame):
@@ -130,12 +121,6 @@ class LabeledCombobox(tk.Frame):
                                 textvariable=self.field,
                                 state=FrameState.READONLY.value)
         self.box.pack(side=tk.LEFT)
-
-    def disable(self):
-        self.box['state'] = FrameState.DISABLED.value
-
-    def enable(self):
-        self.box['state'] = FrameState.READONLY.value
 
     def get(self):
         return self.field.get()
