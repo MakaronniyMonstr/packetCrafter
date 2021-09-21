@@ -1,4 +1,5 @@
 import scapy.all
+from scapy.layers.dns import DNS
 from scapy.packet import Raw
 
 import gui.resources as r
@@ -16,13 +17,18 @@ class App(tk.Frame):
         self.tcp = {}
         self.udp = {}
         self.icmp = {}
-        self.payload = ''
         self.proto = ''
 
         self.interfaces = [iface.name for iface in scapy.all.get_working_ifaces()]
 
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+
+        self.payload = tk.Text(self,
+                               width=30,
+                               height=15,
+                               highlightthickness=1,
+                               highlightbackground="#000000")
 
         self.ip_frame = IPFrame(self.notebook,
                                 self.ip,
@@ -31,11 +37,13 @@ class App(tk.Frame):
 
         self.tcp_frame = TCPFrame(self.notebook,
                                   self.tcp,
+                                  self.payload,
                                   self.ip)
         self.notebook.add(self.tcp_frame, text='TCP')
 
         self.udp_frame = UDPFrame(self.notebook,
                                   self.udp,
+                                  self.payload,
                                   self.ip)
         self.notebook.add(self.udp_frame, text='UDP')
 
@@ -48,11 +56,7 @@ class App(tk.Frame):
                                       text=r.PAYLOAD)
         self.payload_label.pack(side=tk.TOP)
 
-        self.payload = tk.Text(self,
-                               width=30,
-                               height=15,
-                               highlightthickness=1,
-                               highlightbackground="#000000")
+        self.payload.bind('<FocusOut>', lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None)))
         self.payload.pack(side=tk.TOP)
 
         menu_frame = tk.Frame(self)
@@ -125,7 +129,6 @@ class App(tk.Frame):
         packet = self._prepare_packet()
         scapy.all.sendp(packet, iface=interface)
 
-    # fixme move this to PacketManager
     def _prepare_packet(self):
         ip = layers.IP(**self.ip)
 
@@ -141,6 +144,7 @@ class App(tk.Frame):
         payload = self.payload.get('0.0', 'end-1c')
         if len(payload) != 0:
             packet = packet / Raw(load=payload)
+
         return packet
 
 
@@ -253,9 +257,10 @@ class IPFrame(tk.Frame, PacketAdapter):
 
 
 class TCPFrame(tk.Frame, PacketAdapter):
-    def __init__(self, root, data, ip_data):
+    def __init__(self, root, data, payload, ip_data):
         tk.Frame.__init__(self, root)
         PacketAdapter.__init__(self, data, layers.TCP(), ip_data)
+        self.payload = payload
 
         entry_frame = tk.Frame(self)
         entry_frame.pack(side=tk.LEFT)
@@ -323,15 +328,20 @@ class TCPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.ip_data) / layers.TCP(**self.data)
-        layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP]))
+        pack = layers.IP(**self.ip_data) / layers.TCP(**self.data) / Raw(load=self.payload.get('0.0', 'end-1c'))
+        layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP])) / Raw(load=self.payload.get('0.0', 'end-1c'))
+        try:
+            del pack[DNS]
+        except Exception:
+            pass
         return layer[layers.TCP]
 
 
 class UDPFrame(tk.Frame, PacketAdapter):
-    def __init__(self, root, data, ip_data):
+    def __init__(self, root, data, payload, ip_data):
         tk.Frame.__init__(self, root)
         PacketAdapter.__init__(self, data, layers.TCP(), ip_data)
+        self.payload = payload
 
         entry_frame = tk.Frame(self)
         entry_frame.pack(side=tk.LEFT)
@@ -364,8 +374,8 @@ class UDPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.ip_data) / layers.UDP(**self.data)
-        layer = layers.IP(bytes(pack[layers.IP])) / layers.UDP(bytes(pack[layers.UDP]))
+        pack = layers.IP(**self.ip_data) / layers.UDP(**self.data) / Raw(load=self.payload.get('0.0', 'end-1c'))
+        layer = layers.IP(bytes(pack[layers.IP])) / layers.UDP(bytes(pack[layers.UDP])) / Raw(load=self.payload.get('0.0', 'end-1c'))
         return layer[layers.UDP]
 
 
