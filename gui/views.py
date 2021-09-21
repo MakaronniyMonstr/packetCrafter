@@ -48,12 +48,12 @@ class App(tk.Frame):
                                       text=r.PAYLOAD)
         self.payload_label.pack(side=tk.TOP)
 
-        self.payload_textfield = tk.Text(self,
-                                         width=30,
-                                         height=15,
-                                         highlightthickness=1,
-                                         highlightbackground="#000000")
-        self.payload_textfield.pack(side=tk.TOP)
+        self.payload = tk.Text(self,
+                               width=30,
+                               height=15,
+                               highlightthickness=1,
+                               highlightbackground="#000000")
+        self.payload.pack(side=tk.TOP)
 
         menu_frame = tk.Frame(self)
         menu_frame.pack(anchor=tk.N)
@@ -94,9 +94,6 @@ class App(tk.Frame):
 
         # Start with IP protocol
         self.on_protocol_type_changed('IP')
-
-    def on_payload_changed(self, payload):
-        self.payload = payload
 
     def on_protocol_type_changed(self, proto):
         if self.proto == proto:
@@ -140,8 +137,10 @@ class App(tk.Frame):
             return self.packet_manager.build(ip, layers.ICMP(**self.icmp))
         else:
             return self.packet_manager.build(ip, None)
-        if len(self.payload) != 0:
-            packet = packet / Raw(load=self.payload_textfield.get('0.0', 'end-1c'))
+
+        payload = self.payload.get('0.0', 'end-1c')
+        if len(payload) != 0:
+            packet = packet / Raw(load=payload)
         return packet
 
 
