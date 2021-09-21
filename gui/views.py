@@ -1,4 +1,5 @@
 import scapy.all
+from scapy.packet import Raw
 
 import gui.resources as r
 from gui.adapter import *
@@ -15,6 +16,7 @@ class App(tk.Frame):
         self.tcp = {}
         self.udp = {}
         self.icmp = {}
+        self.payload = ''
         self.proto = ''
 
         self.interfaces = [iface.name for iface in scapy.all.get_working_ifaces()]
@@ -42,6 +44,17 @@ class App(tk.Frame):
                                     self.ip)
         self.notebook.add(self.icmp_frame, text='ICMP')
 
+        self.payload_label = tk.Label(self,
+                                      text=r.PAYLOAD)
+        self.payload_label.pack(side=tk.TOP)
+
+        self.payload_textfield = tk.Text(self,
+                                         width=30,
+                                         height=15,
+                                         highlightthickness=1,
+                                         highlightbackground="#000000")
+        self.payload_textfield.pack(side=tk.TOP)
+
         menu_frame = tk.Frame(self)
         menu_frame.pack(anchor=tk.N)
 
@@ -63,7 +76,9 @@ class App(tk.Frame):
         self.add_button = tk.Button(menu_frame,
                                     text=r.ADD,
                                     command=lambda: (self.packet_manager.packets.append(self._prepare_packet()),
-                                                     self.packet_list.insert(tk.END, next((k for (k, v) in IPFrame.PROTOCOLS.items() if k == self.proto), r.ERROR))))
+                                                     self.packet_list.insert(tk.END, next(
+                                                         (k for (k, v) in IPFrame.PROTOCOLS.items() if k == self.proto),
+                                                         r.ERROR))))
         self.add_button.pack(side=tk.LEFT, anchor=tk.NW)
 
         self.clear_button = tk.Button(menu_frame,
@@ -79,6 +94,9 @@ class App(tk.Frame):
 
         # Start with IP protocol
         self.on_protocol_type_changed('IP')
+
+    def on_payload_changed(self, payload):
+        self.payload = payload
 
     def on_protocol_type_changed(self, proto):
         if self.proto == proto:
@@ -115,13 +133,16 @@ class App(tk.Frame):
         ip = layers.IP(**self.ip)
 
         if self.proto == 'TCP':
-            return self.packet_manager.build(ip, layers.TCP(**self.tcp))
+            packet = self.packet_manager.build(ip, layers.TCP(**self.tcp))
         elif self.proto == 'UDP':
-            return self.packet_manager.build(ip, layers.UDP(**self.udp))
+            packet = self.packet_manager.build(ip, layers.UDP(**self.udp))
         elif self.proto == 'ICMP':
             return self.packet_manager.build(ip, layers.ICMP(**self.icmp))
         else:
             return self.packet_manager.build(ip, None)
+        if len(self.payload) != 0:
+            packet = packet / Raw(load=self.payload_textfield.get('0.0', 'end-1c'))
+        return packet
 
 
 class IPFrame(tk.Frame, PacketAdapter):
@@ -227,8 +248,9 @@ class IPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        packet = self.layer.__class__(**self.data)
-        return packet.__class__(bytes(packet))
+        pack = layers.IP(**self.data)
+        layer = layers.IP(bytes(pack[layers.IP]))
+        return layer[layers.IP]
 
 
 class TCPFrame(tk.Frame, PacketAdapter):

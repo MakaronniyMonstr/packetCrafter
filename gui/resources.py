@@ -30,6 +30,7 @@ CLEAR = 'Clear'
 SEND_ALL = 'Send all'
 ERROR = 'Error'
 RESET = 'Reset'
+PAYLOAD = 'Payload'
 
 MF = 'MF'
 DF = 'DF'

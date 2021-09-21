@@ -25,7 +25,7 @@ class PacketAdapter:
         layer.show()
 
         for (k, v) in layer.fields.items():
-            if k not in ['proto', 'options']:
+            if k not in ['proto', 'options', 'payload']:
                 gui_el = getattr(self, k)
                 if v is not None:
                     gui_el.set(v)
