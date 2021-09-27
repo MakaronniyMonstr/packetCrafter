@@ -1,5 +1,4 @@
 import scapy.all
-from scapy.layers.dns import DNS
 from scapy.packet import Raw
 
 import gui.resources as r
@@ -125,6 +124,7 @@ class App(tk.Frame):
 
     def send_packet(self):
         print(f'Sending packet {self.proto}')
+        interface = self.interface.get()
         interface = self.interface.get()
         packet = self._prepare_packet()
         scapy.all.sendp(packet, iface=interface)
@@ -330,10 +330,6 @@ class TCPFrame(tk.Frame, PacketAdapter):
     def update_packet(self):
         pack = layers.IP(**self.ip_data) / layers.TCP(**self.data) / Raw(load=self.payload.get('0.0', 'end-1c'))
         layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP])) / Raw(load=self.payload.get('0.0', 'end-1c'))
-        try:
-            del pack[DNS]
-        except Exception:
-            pass
         return layer[layers.TCP]
 
 

@@ -52,15 +52,13 @@ class VerticalFlags(tk.Frame):
         self.result.set(old_val ^ (1 << v))
 
     def set(self, value):
-        i = 0
         res = 0
 
         self.result.trace_remove(['write'], self.result_callback)
-        while value:
+        for i in range(len(self.vars)):
             self.vars[i].set(int(value) & 0b1)
             res = res | ((int(value) & 0b1) << i)
             value = value >> 1
-            i = i + 1
 
         self.result.set(res)
         self.result.trace_add(['write'], lambda *args: self.result_handler(self.result.get()))
