@@ -23,11 +23,10 @@ class App(tk.Frame):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
 
-        self.payload = tk.Text(self,
-                               width=30,
-                               height=15,
-                               highlightthickness=1,
-                               highlightbackground="#000000")
+        self.payload = LabeledEntry(self,
+                                    r.PAYLOAD,
+                                    lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None)),
+                                    entry_width=15)
 
         self.ip_frame = IPFrame(self.notebook,
                                 self.ip,
@@ -51,11 +50,6 @@ class App(tk.Frame):
                                     self.ip)
         self.notebook.add(self.icmp_frame, text='ICMP')
 
-        self.payload_label = tk.Label(self,
-                                      text=r.PAYLOAD)
-        self.payload_label.pack(side=tk.TOP)
-
-        self.payload.bind('<FocusOut>', lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None)))
         self.payload.pack(side=tk.TOP)
 
         menu_frame = tk.Frame(self)
@@ -141,7 +135,7 @@ class App(tk.Frame):
         else:
             return self.packet_manager.build(ip, None)
 
-        payload = self.payload.get('0.0', 'end-1c')
+        payload = self.payload.get()
         if len(payload) != 0:
             packet = packet / Raw(load=payload)
 
@@ -328,8 +322,8 @@ class TCPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.ip_data) / layers.TCP(**self.data) / Raw(load=self.payload.get('0.0', 'end-1c'))
-        layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP])) / Raw(load=self.payload.get('0.0', 'end-1c'))
+        pack = layers.IP(**self.ip_data) / layers.TCP(**self.data) / Raw(load=self.payload.get())
+        layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP])) / Raw(load=self.payload.get())
         return layer[layers.TCP]
 
 
@@ -370,8 +364,8 @@ class UDPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.ip_data) / layers.UDP(**self.data) / Raw(load=self.payload.get('0.0', 'end-1c'))
-        layer = layers.IP(bytes(pack[layers.IP])) / layers.UDP(bytes(pack[layers.UDP])) / Raw(load=self.payload.get('0.0', 'end-1c'))
+        pack = layers.IP(**self.ip_data) / layers.UDP(**self.data) / Raw(load=self.payload.get())
+        layer = layers.IP(bytes(pack[layers.IP])) / layers.UDP(bytes(pack[layers.UDP])) / Raw(load=self.payload.get())
         return layer[layers.UDP]
 
 
