@@ -25,11 +25,14 @@ class App(tk.Frame):
 
         self.payload = LabeledEntry(self,
                                     r.PAYLOAD,
-                                    lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None), self.icmp_frame.on_data_changed('', None)),
+                                    lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None), self.icmp_frame.on_data_changed('', None), self.ip_frame.on_data_changed('', None)),
                                     entry_width=15)
 
         self.ip_frame = IPFrame(self.notebook,
                                 self.ip,
+                                self.tcp,
+                                self.udp,
+                                self.icmp,
                                 self.payload,
                                 lambda v: self.on_protocol_type_changed(v))
         self.notebook.add(self.ip_frame, text='IP')
@@ -146,10 +149,13 @@ class App(tk.Frame):
 class IPFrame(tk.Frame, PacketAdapter):
     PROTOCOLS = {'IP': 0, 'TCP': 6, 'UDP': 17, 'ICMP': 1}
 
-    def __init__(self, root, data, payload, protocol_changed_handler):
+    def __init__(self, root, data, tcp_data, udp_data, icmp_data, payload, protocol_changed_handler):
         tk.Frame.__init__(self, root)
         PacketAdapter.__init__(self, data, layers.IP())
         self.payload = payload
+        self.tcp_data = tcp_data
+        self.udp_data = udp_data
+        self.icmp_data = icmp_data
 
         entry_frame = tk.Frame(self)
         entry_frame.pack(side=tk.LEFT, anchor=tk.N)
@@ -247,8 +253,21 @@ class IPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.data)
-        layer = layers.IP(bytes(pack[layers.IP]))
+        layer = None
+
+        if self.proto.get() == 'TCP':
+            pack = layers.IP(**self.data) / layers.TCP(**self.tcp_data) / Raw(load=self.payload.get())
+            layer = layers.IP(bytes(pack[layers.IP])) / layers.TCP(bytes(pack[layers.TCP])) / Raw(load=self.payload.get())
+        elif self.proto.get() == 'UDP':
+            pack = layers.IP(**self.data) / layers.UDP(**self.udp_data) / Raw(load=self.payload.get())
+            layer = layers.IP(bytes(pack[layers.IP])) / layers.UDP(bytes(pack[layers.UDP])) / Raw(load=self.payload.get())
+        elif self.proto.get() == 'ICMP':
+            pack = layers.IP(**self.data) / layers.ICMP(**self.icmp_data) / Raw(load=self.payload.get())
+            layer = layers.IP(bytes(pack[layers.IP])) / layers.ICMP(bytes(pack[layers.ICMP])) / Raw(load=self.payload.get())
+        else:
+            pack = layers.IP(**self.data) / Raw(load=self.payload.get())
+            layer = layers.IP(bytes(pack[layers.IP])) / Raw(load=self.payload.get())
+
         return layer[layers.IP]
 
 
