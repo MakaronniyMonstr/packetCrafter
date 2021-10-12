@@ -25,11 +25,12 @@ class App(tk.Frame):
 
         self.payload = LabeledEntry(self,
                                     r.PAYLOAD,
-                                    lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None)),
+                                    lambda v: (self.udp_frame.on_data_changed('', None), self.tcp_frame.on_data_changed('', None), self.icmp_frame.on_data_changed('', None)),
                                     entry_width=15)
 
         self.ip_frame = IPFrame(self.notebook,
                                 self.ip,
+                                self.payload,
                                 lambda v: self.on_protocol_type_changed(v))
         self.notebook.add(self.ip_frame, text='IP')
 
@@ -47,6 +48,7 @@ class App(tk.Frame):
 
         self.icmp_frame = ICMPFrame(self.notebook,
                                     self.icmp,
+                                    self.payload,
                                     self.ip)
         self.notebook.add(self.icmp_frame, text='ICMP')
 
@@ -119,7 +121,6 @@ class App(tk.Frame):
     def send_packet(self):
         print(f'Sending packet {self.proto}')
         interface = self.interface.get()
-        interface = self.interface.get()
         packet = self._prepare_packet()
         scapy.all.sendp(packet, iface=interface)
 
@@ -131,7 +132,7 @@ class App(tk.Frame):
         elif self.proto == 'UDP':
             packet = self.packet_manager.build(ip, layers.UDP(**self.udp))
         elif self.proto == 'ICMP':
-            return self.packet_manager.build(ip, layers.ICMP(**self.icmp))
+            packet = self.packet_manager.build(ip, layers.ICMP(**self.icmp))
         else:
             return self.packet_manager.build(ip, None)
 
@@ -145,9 +146,10 @@ class App(tk.Frame):
 class IPFrame(tk.Frame, PacketAdapter):
     PROTOCOLS = {'IP': 0, 'TCP': 6, 'UDP': 17, 'ICMP': 1}
 
-    def __init__(self, root, data, protocol_changed_handler):
+    def __init__(self, root, data, payload, protocol_changed_handler):
         tk.Frame.__init__(self, root)
         PacketAdapter.__init__(self, data, layers.IP())
+        self.payload = payload
 
         entry_frame = tk.Frame(self)
         entry_frame.pack(side=tk.LEFT, anchor=tk.N)
@@ -375,9 +377,10 @@ class ICMPFrame(tk.Frame, PacketAdapter):
         'echo-reply': 0
     }
 
-    def __init__(self, root, data, ip_data):
+    def __init__(self, root, data, payload, ip_data):
         tk.Frame.__init__(self, root)
         PacketAdapter.__init__(self, data, layers.TCP(), ip_data)
+        self.payload = payload
 
         entry_frame = tk.Frame(self)
         entry_frame.pack(side=tk.LEFT)
@@ -420,6 +423,6 @@ class ICMPFrame(tk.Frame, PacketAdapter):
         self.draw_layer_data()
 
     def update_packet(self):
-        pack = layers.IP(**self.ip_data) / layers.ICMP(**self.data)
-        layer = layers.IP(bytes(pack[layers.IP])) / layers.ICMP(bytes(pack[layers.ICMP]))
+        pack = layers.IP(**self.ip_data) / layers.ICMP(**self.data) / Raw(load=self.payload.get())
+        layer = layers.IP(bytes(pack[layers.IP])) / layers.ICMP(bytes(pack[layers.ICMP])) / Raw(load=self.payload.get())
         return layer[layers.ICMP]
